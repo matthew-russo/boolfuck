@@ -1,6 +1,6 @@
 # Boolfuck interpreter written in rust
 
 ##### Todo:
-[  ] - Fix broken code
-[  ] - Optimize
-[  ] - Write tests
+ - Fix broken code
+ - Optimize
+ - Write tests
