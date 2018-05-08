@@ -70,11 +70,11 @@ impl Interpreter {
         while needed_count > 0 {
             self.code_pointer += 1;
 
-            if self.code.chars().nth(self.code_pointer).unwrap() == '[' {
+            if self.code.get(self.code_pointer).unwrap() == &Token::BracketLeft {
                 needed_count += 1;
             }
 
-            if self.code.chars().nth(self.code_pointer).unwrap() == ']' {
+            if self.code.get(self.code_pointer).unwrap() == &Token::BracketRight {
                 needed_count -= 1;
             }
         }
@@ -89,11 +89,11 @@ impl Interpreter {
         while needed_count > 0 {
             self.code_pointer -= 1;
 
-            if self.code.chars().nth(self.code_pointer).unwrap() == ']' {
+            if self.code.get(self.code_pointer).unwrap() == &Token::BracketRight {
                 needed_count += 1;
             }
 
-            if self.code.chars().nth(self.code_pointer).unwrap() == '[' {
+            if self.code.get(self.code_pointer).unwrap() == &Token::BracketLeft {
                 needed_count -= 1;
             }
         }
@@ -101,16 +101,17 @@ impl Interpreter {
 
     fn run(&mut self) -> Vec<u8> {
         while self.code_pointer < self.code.len() {
-            match self.code.chars().nth(self.code_pointer).unwrap() {
-                '>' => self.increment_pointer(),
-                '<' => self.decrement_pointer(),
-                '+' => self.flip_bit(),
-                ';' => self.output(),
-                ',' => self.input(),
-                '[' => self.jump_forwards(),
-                ']' => self.jump_backwards(),
+            match self.code.get(self.code_pointer).unwrap() {
+                &Token::MoveLeft     => self.increment_pointer(),
+                &Token::MoveRight    => self.decrement_pointer(),
+                &Token::Flip         => self.flip_bit(),
+                &Token::Write        => self.output(),
+                &Token::Read         => self.input(),
+                &Token::BracketLeft  => self.jump_forwards(),
+                &Token::BracketRight => self.jump_backwards(),
                 _ => (),
             }
+            
             self.code_pointer += 1;
         }
 
@@ -189,7 +190,7 @@ impl ToString for Vec<Token> {
     fn to_string(&self) -> String {
         let mut    res = String::new();
         for item in self.iter() {
-            use token::Token::*;
+            use self::Token::*;
             match *item {
                 MoveLeft => res.push('<'),
                 MoveRight => res.push('>'),
@@ -198,7 +199,7 @@ impl ToString for Vec<Token> {
                 Read => res.push(','),
                 Write => res.push(';'),
                 Flip => res.push('+'),
-                EOF => (),
+                EOF => res.push('\0'),
             }
         }
         res
@@ -212,21 +213,21 @@ impl ToToken for str {
 
         for character in self.chars() {
             match character {
-                '<' => tokens.push(Token::MoveLeft),
-                '>' => tokens.push(Token::MoveRight),
-                '[' => { brackets += 1; tokens.push(Token::BracketLeft); },
-                ']' => {
+                '<'  => tokens.push(Token::MoveLeft),
+                '>'  => tokens.push(Token::MoveRight),
+                '['  => { brackets += 1; tokens.push(Token::BracketLeft); },
+                ']'  => {
                     if brackets > 0 {
                         brackets -= 1;
                         tokens.push(Token::BracketRight);
+                    } else {
+                        panic!("Found a right bracket without a preceding left one!");
                     }
-                        else {
-                            panic!("Found a right bracket without a preceding left one!");
-                        }
                 },
-                ',' => tokens.push(Token::Read),
-                ';' => tokens.push(Token::Write),
-                '+' => tokens.push(Token::Flip),
+                ','  => tokens.push(Token::Read),
+                ';'  => tokens.push(Token::Write),
+                '+'  => tokens.push(Token::Flip),
+                '\0' => tokens.push(Token::EOF),
                 _ => (),
             }
         }
